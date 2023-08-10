@@ -13,5 +13,6 @@ url = URL.create(
     port=settings.DATABASE_PORT
 )
 
+
 engine = create_engine(url=url)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

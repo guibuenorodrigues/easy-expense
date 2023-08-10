@@ -56,9 +56,11 @@ async def retrieve_by_id(*, unique_id: UUID, db: Session = Depends(get_db)):
     return result
 
 
-@router.get("/{email}", status_code=200, response_model=UserSearchResults)
-async def retrieve_by_email(*, email: str, db: Session = Depends(get_db)):
+@router.get("/email/{email}", status_code=200, response_model=UserSearchResults)
+async def retrieve_by_email(*, email: str, db: Session = Depends(get_db)):    
     result = repository.user.get_by_email(db=db, email=email)
+
+
 
     if not result:
         raise HTTPException(
