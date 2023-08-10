@@ -1,6 +1,6 @@
 from pydantic import AnyHttpUrl, EmailStr, field_validator
 from pydantic_settings import BaseSettings
-from typing import List, Union
+from typing import List, Union, Optional
 from dotenv import find_dotenv
 
 class Settings(BaseSettings):
