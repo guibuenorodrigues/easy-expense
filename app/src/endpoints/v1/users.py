@@ -12,36 +12,27 @@ router = APIRouter(prefix=f"{settings.API_V1}/users", tags=["users"])
 
 
 @router.get("/", status_code=200, response_model=UserSearchResults)
-async def search(*, keywork: Optional[str] = Query(None, min_length=3, example="my name"), max_results: Optional[int] = 10, db: Session = Depends(get_db)):
+async def search(
+    *,
+    keyword: Optional[str] = Query(None, min_length=3, example="my name"),
+    max_results: Optional[int] = 10,
+    db: Session = Depends(get_db),
+):
     users = repository.user.get_multi(db=db, limit=max_results)
 
     if not users:
-        raise HTTPException(
-            status_code=404, detail=f"users not found"
-        )
-    
+        raise HTTPException(status_code=404, detail=f"there are no users registered")
+
     response = UserSearchResults()
 
-    if not keywork:
+    if not keyword:
         response.results = users
         return response
 
-    results = filter(lambda user: keywork.lower() in user.label.lower(), users)
+    results = filter(lambda user: keyword.lower() in user.label.lower(), users)
 
     response.results = results
     return response
-
-
-@router.post("/", status_code=201, response_model=UserSchema)
-async def create(*, user_create: UserCreate, db: Session = Depends(get_db)):
-    return {"msg": f"user {user_create.first_name} created"}
-
-
-@router.put("/{unique_id}", status_code=201, response_model=UserSchema)
-async def update(
-    *, unique_id: int, user_update: UserUpdate, db: Session = Depends(get_db)
-):
-    return {"msg": f"user {unique_id} updated"}
 
 
 @router.get("/{unique_id}", status_code=200, response_model=UserSearchResults)
@@ -57,10 +48,8 @@ async def retrieve_by_id(*, unique_id: UUID, db: Session = Depends(get_db)):
 
 
 @router.get("/email/{email}", status_code=200, response_model=UserSearchResults)
-async def retrieve_by_email(*, email: str, db: Session = Depends(get_db)):    
+async def retrieve_by_email(*, email: str, db: Session = Depends(get_db)):
     result = repository.user.get_by_email(db=db, email=email)
-
-
 
     if not result:
         raise HTTPException(
@@ -68,3 +57,27 @@ async def retrieve_by_email(*, email: str, db: Session = Depends(get_db)):
         )
 
     return result
+
+
+@router.post("/", status_code=201, response_model=UserSchema)
+async def create(*, user_create: UserCreate, db: Session = Depends(get_db)):
+    try:
+        result = repository.user.create(db=db, obj_in=user_create)
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"{e}")
+    
+    return result
+
+
+@router.put("/{unique_id}", status_code=201, response_model=UserSchema)
+async def update(
+    *, unique_id: int, user_update: UserUpdate, db: Session = Depends(get_db)
+):
+    return {"msg": f"user {unique_id} updated"}
+
+
+@router.delete("/{unique_id}", status_code=200)
+async def remove(*, unique_id: int, db: Session = Depends(get_db)):
+    repository.user.remove(db=db, id=unique_id)
+    
+    return {"msg": f"user {unique_id} deleted"}
