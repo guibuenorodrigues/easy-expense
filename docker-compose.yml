@@ -1,0 +1,52 @@
+version: "3.9"
+
+services:
+  api:
+    container_name: api
+    build: ./app      
+    depends_on:
+      - db
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./app:/code/app
+    networks:
+      - easy_expense_net
+    
+  db:  
+    image: postgres:14.3-alpine  
+    container_name: postgres-db  
+    restart: always 
+    env_file:
+      - ./app/.env
+    ports:  
+      - "6050:5432"  
+    volumes:  
+      - easy_expense_db:/var/lib/postgresql/data  
+    networks:  
+      - easy_expense_net
+  
+  pg-admin:
+    image: dpage/pgadmin4
+    container_name: pg-admin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    ports:
+      - 5050:80
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - easy_expense_net
+  
+volumes:  
+  easy_expense_db:  
+    driver: local  
+  pgadmin-data:
+    driver: local
+  
+networks:  
+  easy_expense_net:  
+    external: true
+

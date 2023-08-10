@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "easy_expense"
+version = "0.1.0"
+description = "Incoming and Expenses control"
+authors = ["Guilherme Rodrigues <guibuenorodrigues@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+fastapi = "^0.100.1"
+uvicorn = {extras = ["standard"], version = "^0.23.1"}
+sqlalchemy = "^2.0.19"
+psycopg2 = "^2.9.6"
+asyncpg = "^0.28.0"
+pydantic = {extras = ["email"], version = "^2.1.1"}
+pydantic-settings = "^2.0.2"
+alembic = "^1.11.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
