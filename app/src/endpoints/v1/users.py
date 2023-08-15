@@ -18,26 +18,30 @@ async def retrieve_all(
     max_results: int = Query(100, gt=0),
     db: Session = Depends(get_db),
 ):
+    """return all users"""
+
     users = repo.user.get_multi(db=db, skip=skip, limit=max_results)
 
     if not users:
-        raise HTTPException(status_code=404, detail=f"there are no users registered")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"there are no users registered")
 
     response = UserSearchResults()
     response.results = users
 
     return response
 
-     
+
 @router.get("/{unique_id}", status_code=200, response_model=UserSearchResults)
 async def retrieve_by_id(*, unique_id: UUID, db: Session = Depends(get_db)):
+    """return user by unique id"""
+
     result = repo.user.get_by_uuid(db=db, uuid=unique_id)
-    print(result)
+    
     if not result:
         raise HTTPException(
-            status_code=404, detail=f"User with ID {unique_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"User with ID {unique_id} not found"
         )
-    
+
     response = UserSearchResults()
     response.results = [result]
     return Response(content=response.model_dump_json(), status_code=status.HTTP_200_OK)
@@ -45,25 +49,47 @@ async def retrieve_by_id(*, unique_id: UUID, db: Session = Depends(get_db)):
 
 @router.post("/", status_code=201, response_model=UserSchema)
 async def create(*, user_create: UserCreate, db: Session = Depends(get_db)):
+    """create a new user"""
     try:
         result = repo.user.create(db=db, obj_in=user_create)
     except IntegrityError as sql:
-        return Response(content=user_create.model_dump_json(), status_code=status.HTTP_409_CONFLICT)
+        return Response(
+            content=user_create.model_dump_json(), status_code=status.HTTP_409_CONFLICT
+        )
     except Exception as e:
-        raise HTTPException(status_code=404, detail=f"{e}")
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"{e}")
+
     return result
 
 
-@router.put("/{unique_id}", status_code=201, response_model=UserSchema)
-async def update(
-    *, unique_id: int, user_update: UserUpdate, db: Session = Depends(get_db)
-):
-    return {"msg": f"user {unique_id} updated"}
+@router.put("/{unique_id}", status_code=200, response_model=UserSchema)
+async def update(unique_id: UUID, user_update: UserUpdate, db: Session = Depends(get_db)):
+    """ update a user by unique id"""
+
+    user_obj = repo.user.get_by_uuid(db=db, uuid=unique_id)
+
+    if not user_obj:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"User with ID {unique_id} not found"
+        )
+        
+    result = repo.user.update(db=db, db_obj=user_obj, obj_in=user_update)
+
+    response = UserSearchResults()
+    response.results = [result]
+    return Response(content=response.model_dump_json(), status_code=status.HTTP_200_OK)
 
 
-@router.delete("/{unique_id}", status_code=200)
-async def remove(*, unique_id: int, db: Session = Depends(get_db)):
-    repo.user.remove(db=db, id=unique_id)
-    
-    return {"msg": f"user {unique_id} deleted"}
+@router.delete("/{unique_id}", status_code=200, response_model=UserSchema)
+async def remove(unique_id: UUID, db: Session = Depends(get_db)):   
+
+    result = repo.user.remove(db=db, uuid=unique_id)
+
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"User with ID {unique_id} not found"
+        )
+
+    response = UserSearchResults()
+    response.results = [result]
+    return Response(content=response.model_dump_json(), status_code=status.HTTP_200_OK)
