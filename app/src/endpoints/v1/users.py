@@ -1,68 +1,54 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from uuid import UUID
 from typing import Optional
 
 from app.core.config import settings
 from app.src.schemas.user import UserCreate, UserUpdate, UserSearchResults, UserSchema
 from app.database.deps import get_db
-from app import repository
+from app import repository as repo
 
 router = APIRouter(prefix=f"{settings.API_V1}/users", tags=["users"])
 
 
 @router.get("/", status_code=200, response_model=UserSearchResults)
-async def search(
-    *,
-    keyword: Optional[str] = Query(None, min_length=3, example="my name"),
-    max_results: Optional[int] = 10,
+async def retrieve_all(
+    skip: int = Query(0, ge=0),
+    max_results: int = Query(100, gt=0),
     db: Session = Depends(get_db),
 ):
-    users = repository.user.get_multi(db=db, limit=max_results)
+    users = repo.user.get_multi(db=db, skip=skip, limit=max_results)
 
     if not users:
         raise HTTPException(status_code=404, detail=f"there are no users registered")
 
     response = UserSearchResults()
+    response.results = users
 
-    if not keyword:
-        response.results = users
-        return response
-
-    results = filter(lambda user: keyword.lower() in user.label.lower(), users)
-
-    response.results = results
     return response
 
-
+     
 @router.get("/{unique_id}", status_code=200, response_model=UserSearchResults)
 async def retrieve_by_id(*, unique_id: UUID, db: Session = Depends(get_db)):
-    result = repository.user.get_by_uuid(db=db, uuid=unique_id)
-
+    result = repo.user.get_by_uuid(db=db, uuid=unique_id)
+    print(result)
     if not result:
         raise HTTPException(
             status_code=404, detail=f"User with ID {unique_id} not found"
         )
-
-    return result
-
-
-@router.get("/email/{email}", status_code=200, response_model=UserSearchResults)
-async def retrieve_by_email(*, email: str, db: Session = Depends(get_db)):
-    result = repository.user.get_by_email(db=db, email=email)
-
-    if not result:
-        raise HTTPException(
-            status_code=404, detail=f"User with EMAIL {email} not found"
-        )
-
-    return result
+    
+    response = UserSearchResults()
+    response.results = [result]
+    return Response(content=response.model_dump_json(), status_code=status.HTTP_200_OK)
 
 
 @router.post("/", status_code=201, response_model=UserSchema)
 async def create(*, user_create: UserCreate, db: Session = Depends(get_db)):
     try:
-        result = repository.user.create(db=db, obj_in=user_create)
+        result = repo.user.create(db=db, obj_in=user_create)
+    except IntegrityError as sql:
+        return Response(content=user_create.model_dump_json(), status_code=status.HTTP_409_CONFLICT)
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"{e}")
     
@@ -78,6 +64,6 @@ async def update(
 
 @router.delete("/{unique_id}", status_code=200)
 async def remove(*, unique_id: int, db: Session = Depends(get_db)):
-    repository.user.remove(db=db, id=unique_id)
+    repo.user.remove(db=db, id=unique_id)
     
     return {"msg": f"user {unique_id} deleted"}

@@ -23,7 +23,7 @@ class UserInDBBase(UserBase):
     created_at: Optional[datetime] = None
     last_modified: Optional[datetime] = None
 
-    class Config:
+    class ConfigDict:
         from_attributes = True
 
 
@@ -34,7 +34,7 @@ class UserInDB(UserInDBBase):
     pass
 
 class UserSearchResults(BaseModel):
-    results: Sequence[UserSchema]
+    results: Sequence[UserSchema] = None
     
 
 
