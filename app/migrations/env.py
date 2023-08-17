@@ -18,14 +18,15 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 
 
-from app.database.base_class import Base
+# from app.database.base_class import Base
 from app.database.session import url
-from app.src.models.user import User
+from app.database.base import Base
+
+
 
 target_metadata = Base.metadata
 
 def get_database_url():
-    print(url)
     return url
 
 

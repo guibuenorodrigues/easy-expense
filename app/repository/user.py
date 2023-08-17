@@ -9,7 +9,8 @@ from app.src.schemas.user import UserCreate, UserUpdate
 
 
 
-class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):   
+class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
+   
     def get_by_uuid(self, db: Session, *, uuid: UUID) -> Optional[User]:
         return db.query(User).filter(User.uuid == uuid).first()
 
